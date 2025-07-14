@@ -1,1 +1,31 @@
+# Cell 1: Install & Import Libraries
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from PIL import Image
 
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from sklearn.metrics import classification_report, confusion_matrix
+
+# For Grad-CAM (install if not present)
+try:
+    from tf_keras_vis.gradcam import Gradcam
+    from tf_keras_vis.utils import normalize
+    from matplotlib import cm
+    print("tf-keras-vis imported successfully.")
+except ImportError:
+    print("tf-keras-vis not found. Install with: pip install tf-keras-vis")
+    Gradcam = None # Set to None if not available
+    # You might want to skip Grad-CAM cells if it's not installed
+
+print(f"TensorFlow version: {tf.__version__}")
+print(f"NumPy version: {np.__version__}")
+print(f"PIL (Pillow) version: {Image.__version__}")
+
+# Add all installed packages to requirements.txt later
