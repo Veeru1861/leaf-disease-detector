@@ -29,3 +29,55 @@ print(f"NumPy version: {np.__version__}")
 print(f"PIL (Pillow) version: {Image.__version__}")
 
 # Add all installed packages to requirements.txt later
+# Cell 2: Data Download and Setup
+# Instructions for users to download the PlantVillage dataset.
+# The PlantVillage dataset is quite large. It's best not to commit it directly to GitHub.
+# Provide clear instructions in README.md or a separate download script.
+
+# For this notebook, we'll assume it's already extracted.
+# Download from Kaggle: https://www.kaggle.com/datasets/saroz16/plantvillage-dataset
+# Or original source: https://data.mendeley.com/datasets/tywbtsjrjv/1
+
+# Define base directory for the dataset
+# IMPORTANT: Adjust this path if your dataset is located elsewhere!
+base_dir = 'data/PlantVillage' # Assumes 'data' folder in project root
+
+train_dir = os.path.join(base_dir, 'train')
+val_dir = os.path.join(base_dir, 'validation')
+
+if not os.path.exists(train_dir) or not os.path.exists(val_dir):
+    print("="*80)
+    print("WARNING: Dataset directories not found.")
+    print(f"Please download the PlantVillage dataset and extract it to: {base_dir}")
+    print("Example Kaggle dataset: https://www.kaggle.com/datasets/saroz16/plantvillage-dataset")
+    print("You might need to unzip it. Ensure 'train' and 'validation' folders are directly inside PlantVillage.")
+    print("="*80)
+    # You might exit or raise an error here if the dataset is critical
+    # For now, we'll just print a warning and continue, which might lead to errors later.
+else:
+    print(f"Dataset found at: {base_dir}")
+    # Basic data exploration
+    class_names = sorted(os.listdir(train_dir))
+    print(f"Total classes found: {len(class_names)}")
+    print(f"Sample classes: {class_names[:5]}...")
+
+    # Count images in a few classes
+    print("\nSample image counts from training directory:")
+    for i, class_name in enumerate(class_names[:3]): # Check first 3 for brevity
+        class_path = os.path.join(train_dir, class_name)
+        if os.path.isdir(class_path):
+            print(f"  {class_name}: {len(os.listdir(class_path))} images")
+
+    # Display a sample image
+    if class_names:
+        sample_class = class_names[0]
+        sample_image_dir = os.path.join(train_dir, sample_class)
+        if os.path.isdir(sample_image_dir) and os.listdir(sample_image_dir):
+            sample_image_path = os.path.join(sample_image_dir, os.listdir(sample_image_dir)[0])
+            img = Image.open(sample_image_path)
+            plt.imshow(img)
+            plt.title(f"Sample Image: {sample_class}")
+            plt.axis('off')
+            plt.show()
+        else:
+            print(f"No images found in {sample_image_dir}")
