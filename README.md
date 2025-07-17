@@ -1,162 +1,181 @@
-# leaf-disease-detector
-Repository Name Recommendation: leaf-disease-detector or plant-disease-classification
-# AI-Powered Leaf Disease Detection System
+# Keras Visualization Toolkit
+[![Build Status](https://travis-ci.org/raghakot/keras-vis.svg?branch=master)](https://travis-ci.org/raghakot/keras-vis)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/raghakot/keras-vis/blob/master/LICENSE)
+[![Slack](https://img.shields.io/badge/slack-discussion-E01563.svg)](https://keras-vis.herokuapp.com/)
 
-![Sample Prediction](images/sample_prediction.png) ## Table of Contents
-- [1. Introduction](#1-introduction)
-- [2. Objectives](#2-objectives)
-- [3. Dataset](#3-dataset)
-- [4. Project Structure](#4-project-structure)
-- [5. Setup and Installation](#5-setup-and-installation)
-- [6. Usage](#6-usage)
-- [7. Model Architecture](#7-model-architecture)
-- [8. Results](#8-results)
-- [9. Explainable AI (XAI)](#9-explainable-ai-xai)
-- [10. Contributing](#10-contributing)
-- [11. License](#11-license)
-- [12. Contact](#12-contact)
+keras-vis is a high-level toolkit for visualizing and debugging your trained keras neural net models. Currently
+supported visualizations include:
 
----
+- Activation maximization
+- Saliency maps
+- Class activation maps
 
-## 1. Introduction
+All visualizations by default support N-dimensional image inputs. i.e., it generalizes to N-dim image inputs 
+to your model.
 
-Plant diseases pose a significant threat to global food security, leading to substantial crop losses and economic hardship for farmers. Traditional methods of disease detection often rely on manual inspection, which is time-consuming, prone to human error, and requires expert knowledge. This project aims to address these challenges by leveraging the power of Artificial Intelligence (AI) and Machine Learning (ML), specifically Deep Learning using Convolutional Neural Networks (CNNs), to develop an automated, accurate, and efficient system for detecting and classifying plant leaf diseases from images.
+The toolkit generalizes all of the above as energy minimization problems with a clean, easy to use, 
+and extendable interface. Compatible with both theano and tensorflow backends with 'channels_first', 'channels_last' 
+data format.
 
-The project is designed to be easily reproducible and shareable, using a structured repository layout and developed within an interactive Jupyter Notebook environment.
+## Quick links
+* Read the documentation at [https://raghakot.github.io/keras-vis](https://raghakot.github.io/keras-vis). 
+    * The Japanese edition is [https://keisen.github.io/keras-vis-docs-ja](https://keisen.github.io/keras-vis-docs-ja).
+* Join the slack [channel](https://keras-vis.herokuapp.com/) for questions/discussions.
+* We are tracking new features/tasks in [waffle.io](https://waffle.io/raghakot/keras-vis). Would love it if you lend us 
+a hand and submit PRs.
 
-## 2. Objectives
+## Getting Started
+In image backprop problems, the goal is to generate an input image that minimizes some loss function.
+Setting up an image backprop problem is easy.
 
-* To develop a robust CNN model capable of accurately identifying and classifying various plant leaf diseases.
-* To create a system that can distinguish between healthy and diseased leaves across multiple plant species.
-* To evaluate the performance of transfer learning using a pre-trained CNN architecture (e.g., MobileNetV2) on the PlantVillage dataset.
-* To provide a clear, reproducible, and well-documented project that can be easily set up and run by others.
-* To demonstrate the full machine learning pipeline: data loading, preprocessing, model training, evaluation, and prediction within a Jupyter Notebook.
-* To offer basic model interpretability using Grad-CAM to understand model decisions.
+**Define weighted loss function**
 
-## 3. Dataset
+Various useful loss functions are defined in [losses](https://raghakot.github.io/keras-vis/vis.losses).
+A custom loss function can be defined by implementing [Loss.build_loss](https://raghakot.github.io/keras-vis/vis.losses/#lossbuild_loss).
 
-This project utilizes the **PlantVillage Dataset**, a widely recognized dataset for plant disease detection. It contains a large collection of healthy and diseased plant leaf images across various species.
+```python
+from vis.losses import ActivationMaximization
+from vis.regularizers import TotalVariation, LPNorm
 
-**Due to its size, the dataset itself is NOT included in this repository.** You will need to download and extract it manually.
+filter_indices = [1, 2, 3]
 
-**Download Instructions:**
-1.  Download the `PlantVillage.zip` dataset from either:
-    * **Kaggle:** [PlantVillage Dataset](https://www.kaggle.com/datasets/saroz16/plantvillage-dataset)
-    * **Mendeley Data:** [PlantVillage Dataset (Original Source)](https://data.mendeley.com/datasets/tywbtsjrjv/1)
-2.  Once downloaded, create a directory named `data` in the root of this cloned repository.
-3.  Extract the contents of the `PlantVillage.zip` file. Ensure that the extracted folder structure places the `train` and `validation` (or `test` if present) subdirectories directly inside `leaf-disease-detection-ai/data/PlantVillage/`.
+# Tuple consists of (loss_function, weight)
+# Add regularizers as needed.
+losses = [
+    (ActivationMaximization(keras_layer, filter_indices), 1),
+    (LPNorm(model.input), 10),
+    (TotalVariation(model.input), 10)
+]
+```
 
-    **Expected Directory Structure After Extraction:**
-    ```
-    leaf-disease-detection-ai/
-    ├── data/
-    │   └── PlantVillage/
-    │       ├── train/
-    │       │   ├── Apple___Apple_scab/
-    │       │   ├── Apple___Black_rot/
-    │       │   └── ... (other disease folders)
-    │       └── validation/
-    │           ├── Apple___Apple_scab/
-    │           ├── Apple___Black_rot/
-    │           └── ...
-    └── ... (other project files)
-    ```
+**Configure optimizer to minimize weighted loss**
 
-## 4. Project Structure
-leaf-disease-detection-ai/
-├── .gitignore             # Files/folders to ignore in Git
-├── README.md              # Project overview, setup, usage
-├── LICENSE                # Open-source license
-├── requirements.txt       # Python dependencies
-├── data/                  # Placeholder for the dataset (PlantVillage will be here)
-│   └── .gitkeep           # Allows 'data' folder to be tracked when empty
-├── notebooks/             # Jupyter notebook for project development
-│   └── leaf_disease_detection.ipynb  # Main project notebook
-├── trained_models/        # Saved model weights
-│   └── .gitkeep           # Allows 'trained_models' folder to be tracked when empty
-├── images/                # Sample prediction images, plots for README.md
-│   └── sample_prediction.png
-└── src/                   # Optional: Python scripts for reusable functions
+In order to generate natural looking images, image search space is constrained using regularization penalties. 
+Some common regularizers are defined in [regularizers](https://raghakot.github.io/keras-vis/vis.regularizers).
+Like loss functions, custom regularizer can be defined by implementing 
+[Loss.build_loss](https://raghakot.github.io/keras-vis/vis.losses/#lossbuild_loss).
 
-## 5. Setup and Installation
+```python
+from vis.optimizer import Optimizer
 
-Follow these steps to set up the project on your local machine:
+optimizer = Optimizer(model.input, losses)
+opt_img, grads, _ = optimizer.minimize()
+```
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/YourGitHubUsername/leaf-disease-detection-ai.git](https://github.com/YourGitHubUsername/leaf-disease-detection-ai.git)
-    cd leaf-disease-detection-ai
-    ```
-2.  **Create and activate a virtual environment (highly recommended):**
-    ```bash
-    python -m venv venv
-    # On Windows:
-    .\venv\Scripts\activate
-    # On macOS/Linux:
-    source venv/bin/activate
-    ```
-3.  **Install dependencies:**
-    * First, you'll need to run the notebook once to generate `requirements.txt` with exact versions. For initial setup, you might need to manually install `tensorflow` and `jupyter` first.
-    * Then, install all required libraries:
-        ```bash
-        pip install -r requirements.txt
-        ```
-    * *(If `requirements.txt` is not yet present or you're setting up for the first time before running the notebook):*
-        ```bash
-        pip install jupyter tensorflow matplotlib seaborn scikit-learn pillow opencv-python tf-keras-vis
-        ```
-4.  **Download and extract the dataset** as described in the [Dataset section](#3-dataset).
+Concrete examples of various supported visualizations can be found in 
+[examples folder](https://github.com/raghakot/keras-vis/tree/master/examples).
 
-## 6. Usage
+## Installation
 
-1.  **Start Jupyter Notebook:**
-    ```bash
-    jupyter notebook
-    ```
-2.  **Open the Notebook:** In the Jupyter interface that opens in your browser, navigate to the `notebooks/` directory and click on `leaf_disease_detection.ipynb`.
-3.  **Run Cells:** Execute each cell sequentially from top to bottom (`Shift + Enter`).
-    * The notebook will guide you through data loading, preprocessing, model definition, training, evaluation, and making predictions.
-    * It will automatically save the best-trained model to the `trained_models/` directory.
+1) Install [keras](https://github.com/fchollet/keras/blob/master/README.md#installation) 
+with theano or tensorflow backend. Note that this library requires Keras > 2.0
 
-## 7. Model Architecture
+2) Install keras-vis
+> From sources
+```bash
+sudo python setup.py install
+```
 
-The project utilizes a deep learning approach based on Convolutional Neural Networks (CNNs). Specifically, it employs **Transfer Learning** with a pre-trained **MobileNetV2** model.
+> PyPI package
+```bash
+sudo pip install keras-vis
+```
 
-* **Base Model:** MobileNetV2, pre-trained on the ImageNet dataset. The top classification layer is removed.
-* **Frozen Layers:** The weights of the MobileNetV2 base model are frozen during initial training to leverage learned features.
-* **Custom Head:** A custom classification head is added on top, consisting of:
-    * `GlobalAveragePooling2D`: To reduce feature maps to a single feature vector per channel.
-    * `Dense` layer with ReLU activation.
-    * `Dropout`: For regularization to prevent overfitting.
-    * Final `Dense` layer with `softmax` activation for multi-class classification.
-* **Optimizer:** Adam optimizer with a low learning rate (e.g., 0.0001) for fine-tuning.
-* **Loss Function:** Categorical Cross-Entropy.
+## Visualizations
 
-## 8. Results
+**NOTE: The links are currently broken and the entire documentation is being reworked.
+Please see examples/ for samples.**
 
-The model's performance will be evaluated on the validation set using metrics such as:
+Neural nets are black boxes. In the recent years, several approaches for understanding and visualizing Convolutional 
+Networks have been developed in the literature. They give us a way to peer into the black boxes, 
+diagnose mis-classifications, and assess whether the network is over/under fitting. 
 
-* **Accuracy:** Overall correct predictions.
-* **Precision, Recall, F1-Score:** Per-class performance metrics.
-* **Confusion Matrix:** A visual representation of classification performance.
+Guided backprop can also be used to create [trippy art](https://deepdreamgenerator.com/gallery), neural/texture 
+[style transfer](https://github.com/jcjohnson/neural-style) among the list of other growing applications.
 
-*(Once you've run the notebook, you can add specific metrics here, e.g.:)*
+Various visualizations, documented in their own pages, are summarized here.
 
-> After training for X epochs, the model achieved approximately **YY.YY% Validation Accuracy**.
->
-> *(You can also add images of your training/validation plots and confusion matrix here, saving them to `images/` and referencing them like `![Confusion Matrix](images/confusion_matrix.png)`)*
+<hr/>
 
-## 9. Explainable AI (XAI)
+### [Conv filter visualization](https://raghakot.github.io/keras-vis/visualizations/conv_filters)
+<img src="https://raw.githubusercontent.com/raghakot/keras-vis/master/images/conv_vis/cover.jpg?raw=true"/>
 
-To provide insights into why the model makes certain predictions, the project includes an optional section demonstrating **Grad-CAM (Gradient-weighted Class Activation Mapping)**. Grad-CAM generates a heatmap highlighting the regions of the input image that were most important for the model's prediction, helping to visualize what features the CNN focused on.
+*Convolutional filters learn 'template matching' filters that maximize the output when a similar template 
+pattern is found in the input image. Visualize those templates via Activation Maximization.*
 
-## 10. Contributing
+<hr/>
 
-Contributions are welcome! If you have suggestions for improvements, find bugs, or want to add new features, please feel free to:
+### [Dense layer visualization](https://raghakot.github.io/keras-vis/visualizations/dense)
 
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  Make your changes.
-4.  Commit your changes (`git commit -m 'Add new feature'`).
-5.  Push to the branch (`git push origin feature/your-feature-name`).
-6.  Open a Pull Request.
+<img src="https://raw.githubusercontent.com/raghakot/keras-vis/master/images/dense_vis/cover.png?raw=true"/>
+
+*How can we assess whether a network is over/under fitting or generalizing well?*
+
+<hr/>
+
+### [Attention Maps](https://raghakot.github.io/keras-vis/visualizations/attention)
+
+<img src="https://raw.githubusercontent.com/raghakot/keras-vis/master/images/attention_vis/cover.png?raw=true"/>
+
+*How can we assess whether a network is attending to correct parts of the image in order to generate a decision?*
+
+<hr/>
+
+### Generating animated gif of optimization progress
+It is possible to generate an animated gif of optimization progress by leveraging 
+[callbacks](https://raghakot.github.io/keras-vis/vis.callbacks). Following example shows how to visualize the 
+activation maximization for 'ouzel' class (output_index: 20).
+
+```python
+from keras.applications import VGG16
+
+from vis.losses import ActivationMaximization
+from vis.regularizers import TotalVariation, LPNorm
+from vis.input_modifiers import Jitter
+from vis.optimizer import Optimizer
+from vis.callbacks import GifGenerator
+
+# Build the VGG16 network with ImageNet weights
+model = VGG16(weights='imagenet', include_top=True)
+print('Model loaded.')
+
+# The name of the layer we want to visualize
+# (see model definition in vggnet.py)
+layer_name = 'predictions'
+layer_dict = dict([(layer.name, layer) for layer in model.layers[1:]])
+output_class = [20]
+
+losses = [
+    (ActivationMaximization(layer_dict[layer_name], output_class), 2),
+    (LPNorm(model.input), 10),
+    (TotalVariation(model.input), 10)
+]
+opt = Optimizer(model.input, losses)
+opt.minimize(max_iter=500, verbose=True, input_modifiers=[Jitter()], callbacks=[GifGenerator('opt_progress')])
+
+```
+
+Notice how the output jitters around? This is because we used [Jitter](https://raghakot.github.io/keras-vis/vis.modifiers/#jitter), 
+a kind of [ImageModifier](https://raghakot.github.io/keras-vis/vis.modifiers/#imagemodifier) that is known to produce 
+crisper activation maximization images. As an exercise, try:
+
+- Without Jitter
+- Varying various loss weights
+
+![opt_progress](https://raw.githubusercontent.com/raghakot/keras-vis/master/images/opt_progress.gif?raw=true "Optimization progress")
+
+<hr/>
+
+## Citation
+
+Please cite keras-vis in your publications if it helped your research. Here is an example BibTeX entry:
+
+```
+@misc{raghakotkerasvis,
+  title={keras-vis},
+  author={Kotikalapudi, Raghavendra and contributors},
+  year={2017},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/raghakot/keras-vis}},
+}
+```
